@@ -21,7 +21,7 @@
     "identity"
   ],
   "oauth2": {
-    "client_id": "22022180893-klqc2vd3ubp8ap5kmsk3j4ad67i8kmcm.apps.googleusercontent.com",
+    "client_id": "$GAPI_VERSION.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/drive.appfolder"
     ]

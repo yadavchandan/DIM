@@ -102,6 +102,14 @@ module.exports = function(grunt) {
           from: '$DIM_VERSION',
           to: betaVersion
         }]
+      },
+      gapi_key: {
+        src: ['dist/**/*.{json,js}'],
+        overwrite: true,
+        replacements: [{
+          from: '$GAPI_VERSION',
+          to: '530625799361-evv1thmjunrkl9m4rof6g7cdg3ci0cma'
+        }]
       }
     },
 
@@ -231,6 +239,7 @@ module.exports = function(grunt) {
     'build',
     'copy:beta_icons_chrome',
     'replace:beta_version',
+    'replace:gapi_key',
     'compress:chrome',
     'webstore_upload:beta',
     'log_beta_version'

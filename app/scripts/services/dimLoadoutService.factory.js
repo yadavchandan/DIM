@@ -5,8 +5,8 @@
     .factory('dimLoadoutService', LoadoutService);
 
 
-  LoadoutService.$inject = ['$q', '$rootScope', 'uuid2', 'dimItemService', 'dimStoreService', 'toaster', 'loadingTracker', 'dimPlatformService', 'SyncService', 'dimActionQueue'];
-  function LoadoutService($q, $rootScope, uuid2, dimItemService, dimStoreService, toaster, loadingTracker, dimPlatformService, SyncService, dimActionQueue) {
+  LoadoutService.$inject = ['$q', '$rootScope', 'uuid2', 'dimItemService', 'dimStoreService', 'toaster', 'loadingTracker', 'dimPlatformService', 'SyncService', 'dimActionQueue', 'dimBungieService'];
+  function LoadoutService($q, $rootScope, uuid2, dimItemService, dimStoreService, toaster, loadingTracker, dimPlatformService, SyncService, dimActionQueue, dimBungieService) {
     var _loadouts = [];
 
     return {
@@ -28,7 +28,16 @@
 
     function processLoadout(data, version) {
       if (data) {
-        if (version === 'v3.0') {
+        if (version === 'v4.0') {
+          dimBungieService.getMembership().then(function(membershipId) {
+            var ids = data['loadouts-v4.0'][membershipId];
+            _loadouts.splice(0);
+
+            _.each(ids, function(id) {
+              _loadouts.push(hydrate(id));
+            });
+          });
+        } else if (version === 'v3.0') {
           var ids = data['loadouts-v3.0'];
           _loadouts.splice(0);
 
@@ -60,7 +69,9 @@
       // Avoids the hit going to data store if we have data already.
       if (getLatest || _.size(_loadouts) === 0) {
         SyncService.get().then(function(data) {
-          if (_.has(data, 'loadouts-v3.0')) {
+          if (_.has(data, 'loadouts-v4.0')) {
+            processLoadout(data, 'v4.0');
+          } else if (_.has(data, 'loadouts-v3.0')) {
             processLoadout(data, 'v3.0');
           } else if (_.has(data, 'loadouts-v2.0')) {
             processLoadout(data['loadouts-v2.0'], 'v2.0');
@@ -98,19 +109,20 @@
           });
 
           var data = {
-            'loadouts-v3.0': []
+            'loadouts-v4.0': {}
           };
 
-          _.each(loadoutPrimitives, function(l) {
-            data['loadouts-v3.0'].push(l.id);
-            data[l.id] = l;
+          return dimBungieService.getMembership().then(function(membershipId) {
+            data['loadouts-v4.0'][membershipId] = _.map(loadoutPrimitives, function(l) {
+              return l;
+            });
+
+            SyncService.set(data);
+
+            deferred.resolve(loadoutPrimitives);
+
+            return deferred.promise;
           });
-
-          SyncService.set(data);
-
-          deferred.resolve(loadoutPrimitives);
-
-          return deferred.promise;
         });
     }
 
@@ -172,7 +184,8 @@
         'v1.0': hydratev1d0,
         'v2.0': hydratev2d0,
         'v3.0': hydratev3d0,
-        default: hydratev3d0
+        'v4.0': hydratev4d0,
+        default: hydratev4d0
       };
 
       // v1.0 did not have a 'version' property so if it fails, we'll assume.
@@ -386,6 +399,37 @@
       return promise;
     }
 
+    function hydratev4d0(loadoutPrimitive) {
+      var result = {
+        id: loadoutPrimitive.id,
+        name: loadoutPrimitive.name,
+        platform: loadoutPrimitive.platform,
+        classType: (_.isUndefined(loadoutPrimitive.classType) ? -1 : loadoutPrimitive.classType),
+        version: 'v4.0',
+        items: {}
+      };
+
+      _.each(loadoutPrimitive.items, function(itemPrimitive) {
+        var item = angular.copy(dimItemService.getItem({
+          id: itemPrimitive.id,
+          hash: itemPrimitive.hash
+        }));
+
+        if (item) {
+          var discriminator = item.type.toLowerCase();
+
+          item.equipped = itemPrimitive.equipped;
+
+          item.amount = itemPrimitive.amount;
+
+          result.items[discriminator] = (result.items[discriminator] || []);
+          result.items[discriminator].push(item);
+        }
+      });
+
+      return result;
+    }
+
     function hydratev3d0(loadoutPrimitive) {
       var result = {
         id: loadoutPrimitive.id,
@@ -475,7 +519,7 @@
         id: loadout.id,
         name: loadout.name,
         classType: loadout.classType,
-        version: 'v3.0',
+        version: 'v4.0',
         platform: loadout.platform,
         items: []
       };

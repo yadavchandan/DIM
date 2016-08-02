@@ -19,6 +19,7 @@
     });
 
     var service = {
+      getMembership: getMembership,
       getPlatforms: getPlatforms,
       getCharacters: getCharacters,
       getStores: getStores,
