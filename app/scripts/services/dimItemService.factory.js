@@ -574,7 +574,7 @@
 
     function getItem(params, store) {
       var items = store ? store.items : getItems();
-      return _.findWhere(items, _.pick(params, 'id', 'hash', 'notransfer'));
+      return _.findWhere(items, _.pick(params, _.identity, 'id', 'hash', 'notransfer'));
     }
   }
 })();

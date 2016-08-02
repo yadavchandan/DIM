@@ -48,7 +48,6 @@
         });
         loadout.stackable.forEach(function(item) {
           items.push({
-            id: "",
             hash: item.hash,
             amount: item.amount,
             equipped: false
@@ -187,7 +186,6 @@
         fileId: id,
         alt: 'media'
       }).execute(function(resp) {
-        console.log('we got some data...', resp, id)
         if (resp.code === 401 || resp.code === 404) {
           revokeDrive();
           return;
@@ -299,7 +297,6 @@
           ready.promise.then(authorize).then(function() {
             getDriveFile(cached.loadoutFileId).then(function(data) {
               cached['loadouts-v4.0'] = toDIMLoadout(data.result);
-
               deferred.resolve(cached);
             });
           });
