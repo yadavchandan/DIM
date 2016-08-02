@@ -6,6 +6,68 @@
 
   SyncService.$inject = ['$q', '$window'];
 
+  function toOpenLoadout(loadouts) {
+    var ret = {};
+    for(var membershipId in loadouts) {
+      ret[membershipId] = [];
+      loadouts[membershipId].forEach(function(loadout) {
+        ret[membershipId].push({
+          guid: loadout.id,
+          name: loadout.name,
+          platform: loadout.platform,
+          subclass: loadout.classType,
+          equip: _.map(_.filter(loadout.items, function(item) { return item.amount === 1 && item.equipped; }), function(item) { return item.id; }),
+          inventory: _.map(_.filter(loadout.items, function(item) { return item.amount === 1 && !item.equipped; }), function(item) { return item.id; }),
+          stackable: _.map(_.filter(loadout.items, function(item) { return item.amount > 1; }), function(item) { return { hash: item.hash, amount: item.amount }; }),
+        });
+      });
+    }
+    return ret;
+  }
+
+  function toDIMLoadout(loadouts) {
+    var ret = {};
+    for(var membershipId in loadouts) {
+      ret[membershipId] = [];
+
+      loadouts[membershipId].forEach(function(loadout) {
+        var items = [];
+        loadout.equip.forEach(function(item) {
+          items.push({
+            id: item,
+            amount: 1,
+            equipped: true
+          });
+        });
+        loadout.inventory.forEach(function(item) {
+          items.push({
+            id: item,
+            amount: 1,
+            equipped: false
+          });
+        });
+        loadout.stackable.forEach(function(item) {
+          items.push({
+            id: "",
+            hash: item.hash,
+            amount: item.amount,
+            equipped: false
+          });
+        });
+
+        ret[membershipId].push({
+          id: loadout.guid,
+          name: loadout.name,
+          platform: loadout.platform,
+          classType: loadout.subclass,
+          version: 'v4.0',
+          items: items
+        });
+      });
+    }
+    return ret;
+  }
+
   function SyncService($q, $window) {
     var cached; // cached is the data in memory,
     var drive = { // drive api data
@@ -173,14 +235,6 @@
           }
         });
       }
-      // else if(chrome.storage && chrome.storage.local) {
-      //   chrome.storage.local.set(cached, function() {
-      //     console.log('saved to chrome local.', cached);
-      //     if (chrome.runtime.lastError) {
-      //       console.log('error with chrome local.')
-      //     }
-      //   });
-      // }
 
       // save to google drive
       if (cached.loadoutFileId) {
@@ -191,7 +245,7 @@
             uploadType: 'media',
             alt: 'json'
           },
-          body: cached['loadouts-v4.0']
+          body: toOpenLoadout(cached['loadouts-v4.0'])
         }).execute(function(resp) {
           if (resp && resp.error && (resp.error.code === 401 || resp.error.code === 404)) {
             console.log('error saving. revoking drive.');
@@ -244,8 +298,7 @@
 
           ready.promise.then(authorize).then(function() {
             getDriveFile(cached.loadoutFileId).then(function(data) {
-              console.log('we got the data', data);
-              cached['loadouts-v4.0'] = data;
+              cached['loadouts-v4.0'] = toDIMLoadout(data.result);
 
               deferred.resolve(cached);
             });
