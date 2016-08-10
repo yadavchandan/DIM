@@ -16,9 +16,28 @@
           name: loadout.name,
           platform: loadout.platform,
           subclass: loadout.classType,
-          equip: _.map(_.filter(loadout.items, function(item) { return item.amount === 1 && item.equipped; }), function(item) { return item.id; }),
-          inventory: _.map(_.filter(loadout.items, function(item) { return item.amount === 1 && !item.equipped; }), function(item) { return item.id; }),
-          stackable: _.map(_.filter(loadout.items, function(item) { return item.amount > 1; }), function(item) { return { hash: item.hash, amount: item.amount }; }),
+          equip: _.map(_.filter(loadout.items, function(item) {
+            return item.amount === 1 && item.equipped;
+          }), function(item) {
+            return {
+              id: item.id
+            };
+          }),
+          inventory: _.map(_.filter(loadout.items, function(item) {
+            return item.amount === 1 && !item.equipped;
+          }), function(item) {
+            return {
+              id: item.id
+            };
+          }),
+          stackable: _.map(_.filter(loadout.items, function(item) {
+            return item.amount > 1;
+          }), function(item) {
+            return {
+              hash: item.hash,
+              amount: item.amount
+            };
+          }),
         });
       });
     }
@@ -34,14 +53,14 @@
         var items = [];
         loadout.equip.forEach(function(item) {
           items.push({
-            id: item,
+            id: item.id,
             amount: 1,
             equipped: true
           });
         });
         loadout.inventory.forEach(function(item) {
           items.push({
-            id: item,
+            id: item.id,
             amount: 1,
             equipped: false
           });
