@@ -4,9 +4,9 @@
   angular.module('dimApp')
     .controller('dimAppCtrl', DimApp);
 
-  DimApp.$inject = ['ngDialog', '$rootScope', 'loadingTracker', 'dimPlatformService', '$interval', 'hotkeys', '$timeout', 'dimStoreService', 'dimXurService', 'dimVendorService', 'dimSettingsService', '$window', '$scope', '$state'];
+  DimApp.$inject = ['ngDialog', '$rootScope', 'loadingTracker', 'dimPlatformService', '$interval', 'hotkeys', '$timeout', 'dimStoreService', 'dimXurService', 'dimSettingsService', '$window', '$scope', '$state'];
 
-  function DimApp(ngDialog, $rootScope, loadingTracker, dimPlatformService, $interval, hotkeys, $timeout, dimStoreService, dimXurService, dimVendorService, dimSettingsService, $window, $scope, $state) {
+  function DimApp(ngDialog, $rootScope, loadingTracker, dimPlatformService, $interval, hotkeys, $timeout, dimStoreService, dimXurService, dimSettingsService, $window, $scope, $state) {
     var vm = this;
 
     vm.settings = dimSettingsService;
@@ -65,10 +65,6 @@
       }
     });
 
-    $rootScope.$on('dim-active-platform-updated', function(e, args) {
-      loadingTracker.addPromise(dimVendorService.updateVendorItems(args.platform.type));
-    });
-
     /**
      * Show a popup dialog containing the given template. Its class
      * will be based on the name.
@@ -91,6 +87,12 @@
           result.closePromise.then(function() {
             result = null;
           });
+
+          if (ga) {
+            // Disable sending pageviews on popups for now, over concerns that we'll go over our free GA limits.
+            // Send a virtual pageview event, even though this is a popup
+            // ga('send', 'pageview', { page: '/' + name });
+          }
         }
       };
     }
