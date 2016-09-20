@@ -1,4 +1,61 @@
-# Next
+# 3.10.5
+
+* Added Ornaments.
+
+# 3.10.4
+
+* We handle manifest download/cache errors better, by deleting the cached file and letting you retry.
+* Date armor ratings end is on 9/20/2016 @ 2AM Pacific.
+* Fixed issues with broken images by downloading from Bungie.net with https.
+* Loadouts for multi-platform users will now save selected and equipped items for both platforms.  Previously, when switching platforms, loadouts would remove items from the loadout for the opposite platform.
+
+# 3.10.3
+
+* Fixed a "move-canceled" message showing up sometimes when applying loadouts.
+* Bugged items like Iron Shell no longer attempt to compute quality. They'll fix themselves when Bungie fixes them.
+* Fixed "Aim assist" stat not showing up in CSV (and no stats showing up if your language wasn't English).
+* We now catch manifest updates that don't update the manifest version - if you see broken images, try reloading DIM and it should pick up new info.
+* Worked around a bug in the manifest data where Ornamenent nodes show up twice.
+* DIM won't allow you to move rare Masks, because that'll destroy them.
+* The "Random" auto loadout can now be un-done from the loadout menu.
+* For non-variable items (emblems, shaders, ships, etc) in a loadout, DIM will use whichever copy is already on a character if it can, rather than moving a specific instance from another character.
+
+# 3.10.2
+
+* Fixed error building talent grid for Hawkmoon.
+* Don't attempt to build record books when advisors are not loaded.
+* Dragged items now include their border and light level again.
+* New-item overlays have been restored (enable in settings).
+* Reenable record book progress.
+* Better handle errors when record book info isn't available.
+* Show an error message if the manifest doesn't load.
+* Fix an error when equipping loadouts.
+* DIM usage tips will only show up once per session now. You can bring back previously hidden tips with a button in the settings page.
+
+# 3.10.0
+
+* Add ability to create loadouts by selecting sets of perks.
+* [#823](https://github.com/DestinyItemManager/DIM/issues/823) Added 'current' property to stores.
+* The DIM extension is now much smaller.
+* DIM can now display item information in all supported Destiny languages. Choose your language in the settings then reload DIM.
+* We now automatically pick up Destiny data updates, so DIM should work after patches without needing an update.
+* The Reputation section should match the in-game logos better now.
+* Disable new item overlays due to a bug.
+
+# 3.9.2
+
+* [#812](https://github.com/DestinyItemManager/DIM/issues/812) Removed rare masks from the items table used by the random item loadout.
+
+# 3.9.1
+
+* [#801](https://github.com/DestinyItemManager/DIM/issues/801) Resolved error with vendor page character sorting.
+* [#792](https://github.com/DestinyItemManager/DIM/pull/792) Warning if user clicks on perks to notify them that they can only be changed in game.
+* [#795](https://github.com/DestinyItemManager/DIM/pull/795) Updated strange coin icon for Xur.
+
+# 3.9.0
+
+* New glimmer-based filters, is:glimmeritem, is:glimmerboost, is:glimmersupply
+* Add option for new item and its popup to be hidden
 * Add ability to exclude items from loadout builder.
 * Expand/collapse sections in DIM.
 * Double clicking an item will equip it on the current character. 2x click on equipped, dequips.
@@ -20,6 +77,8 @@
 * New aliases for rarity filters (is:white, is:green, is:blue, is:purple, is:yellow).
 * An alternate option for the "Gather Engrams" loadout can exclude gathering exotic engrams.
 * Removed popup notification for new items.
+* #798 Keyword searches will now scan perk descriptions.
+* #799 Randomize equipped items for current character. Don't look at us if you have to play a match using Thorn.
 
 # 3.8.3
 

@@ -25,14 +25,39 @@
         result[property] = 'hsl(' + color + ',85%,60%)';
         return result;
       };
-    });
+    })
+    .filter('bungieBackground', function() {
+      return function backgroundImage(value) {
+        return {
+          'background-image': 'url(https://www.bungie.net' + value + ')'
+        };
+      };
+    })
+    .filter('tagIcon', ['dimSettingsService', function(dimSettingsService) {
+      var iconType = {};
 
+      dimSettingsService.itemTags.forEach((tag) => {
+        if (tag.type) {
+          iconType[tag.type] = tag.icon;
+        }
+      });
+
+      return function tagIcon(value) {
+        var icon = iconType[value];
+        if (icon) {
+          return "item-tag fa fa-" + icon;
+        } else {
+          return "item-tag no-tag";
+        }
+      };
+    }]);
 
 
   StoreItem.$inject = ['dimItemService', 'dimStoreService', 'ngDialog', 'dimLoadoutService', '$rootScope', 'dimActionQueue'];
 
   function StoreItem(dimItemService, dimStoreService, ngDialog, dimLoadoutService, $rootScope, dimActionQueue) {
     var otherDialog = null;
+    let firstItemTimed = false;
 
     return {
       bindToController: true,
@@ -60,9 +85,10 @@
         '    <div class="item-xp-bar item-xp-bar-small" ng-if="vm.item.percentComplete && !vm.item.complete">',
         '      <div dim-percent-width="vm.item.percentComplete"></div>',
         '    </div>',
-        '    <div class="img" dim-bungie-image-fallback="::vm.item.icon" ng-click="vm.clicked(vm.item, $event)" ng-dblclick="vm.doubleClicked(vm.item, $event)">',
+        '    <div class="img" ng-style="::vm.item.icon | bungieBackground" ng-click="vm.clicked(vm.item, $event)" ng-dblclick="vm.doubleClicked(vm.item, $event)">',
         '    <div ng-if="vm.item.quality" class="item-stat item-quality" ng-style="vm.item.quality.min | qualityColor">{{ vm.item.quality.min }}%</div>',
         '    <img class="element" ng-if=":: vm.item.dmg && vm.item.dmg !== \'kinetic\'" ng-src="/images/{{::vm.item.dmg}}.png"/>',
+        '    <span ng-class="vm.item.dimInfo.tag | tagIcon"></span>',
         '    <div ng-if="vm.item.isNew" class="new_overlay_overflow">',
         '      <img class="new_overlay" src="/images/overlay.svg" height="44" width="44"/>',
         '    </div>',
@@ -73,6 +99,11 @@
     };
 
     function Link(scope, element) {
+      if (!firstItemTimed) {
+        console.timeEnd('First item directive built');
+        firstItemTimed = true;
+      }
+
       var vm = scope.vm;
       var dialogResult = null;
 
@@ -177,7 +208,7 @@
       }
 
       scope.$watch('vm.item.quality', function() {
-        vm.badgeClassNames['item-stat-no-bg'] = (vm.item.quality && vm.item.quality.min > 0);
+        vm.badgeClassNames['item-stat-no-bg'] = vm.item.quality;
       });
     }
   }

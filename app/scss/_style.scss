@@ -35,9 +35,13 @@ div:focus, span:focus {
 }
 
 .new_overlay_overflow {
-  width: var(--item-size);
-  height: var(--item-size);
-  overflow: hidden;
+  display: none;
+  .show-new-items & {
+    display: block;
+    width: var(--item-size);
+    height: var(--item-size);
+    overflow: hidden;
+  }
 }
 
 /**
@@ -469,7 +473,6 @@ img {
 }
 
 .title {
-  cursor: pointer;
   flex: 1;
   padding: 0 16px;
   background-color: #353535;
@@ -482,6 +485,9 @@ img {
   border-bottom: solid 1px #6D6D6D;
   border-top: solid 1px #2B2B2B;
   border-left: solid 1px #2b2b2b;
+  span[role="button"] {
+    cursor: pointer;
+  }
   .bucket-count {
     float: right;
   }
@@ -526,6 +532,7 @@ img {
 }
 
 .sub-bucket {
+  min-height: calc(var(--item-size) + 4px);
   background-size: var(--item-size);
   background-position: 4px 4px;
   background-image: url('../images/bg_inventory_bucket_single_crop.png');
@@ -640,6 +647,9 @@ img {
       height: var(--item-size);
       background-size: cover;
       display: block;
+      &:focus {
+        outline: none;
+      }
     }
   }
   .element {
@@ -649,10 +659,25 @@ img {
       display: block;
       position: absolute;
       top: 2px;
-      left: 2px;
-      height: 16px;
-      width: 16px;
+      right: 2px;
+      height: 14px;
+      width: 14px;
     }
+  }
+}
+
+.item-tag {
+  text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.7);
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  color: gold;
+//  &.fa-ban {
+//    -webkit-text-stroke: 0px;
+//    color: red;
+  //  }
+  &.no-tag {
+    display: none;
   }
 }
 
@@ -1092,9 +1117,25 @@ rzslider {
   margin: 10px;
 }
 
+.item-notes {
+  width: 100%;
+  height: 30px;
+  background-color: #333;
+  padding: 4px 8px;
+  border: none;
+  outline: none;
+  color: white;
+}
 .item-description {
   margin: 5px 10px;
   white-space: pre-wrap;
+}
+.item-notes-error {
+  margin: 5px 10px;
+  white-space: pre-wrap;
+  color: #985C58;
+  width: 100%;
+  text-align: right;
 }
 
 .item-perks {
@@ -1387,7 +1428,7 @@ g {
   padding: 1em;
 }
 
-#loadout-contents {
+.loadout-contents {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
@@ -1402,6 +1443,18 @@ g {
     background-image: url('../images/spartan.png');
     background-color: rgba(255, 0, 0, 0.6);
     background-size: 16px 16px;
+  }
+  .warn:before {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    display: inline-block;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    content: '\f071';
+    background-color: rgba(255, 204, 204, 0.6);
+    background-size: 14px 14px;
   }
 }
 
@@ -1435,7 +1488,7 @@ g {
     border-top: solid 1px #151515;
   }
 
-  span:first-child {
+  > span:first-child {
     flex: 1;
     padding: 0 10px;
     overflow: hidden;
@@ -1451,7 +1504,7 @@ g {
     }
   }
 
-  span:not(:first-child) {
+  > span:not(:first-child) {
     padding: 0 12px;
     text-align: center;
     color: #888;
@@ -1540,12 +1593,20 @@ h2, h3, h4 {
   }
 }
 
+.toast-info {
+  input[type='checkbox'] {
+    margin: -2px 5px 0 0;
+    vertical-align: middle;
+    font-size:30px;
+  }
+}
+
 .toast-close-button {
   position: relative;
-  right: -0.3em;
-  top: -0.3em;
+  right: 0em;
+  top: -0.4em;
   float: right;
-  font-size: 20px;
+  font-size: 30px;
   font-weight: bold;
   color: white;
   text-shadow: 0 1px 0 white;
@@ -1953,6 +2014,23 @@ button.toast-close-button {
   margin: 0;
 }
 
+// Makes an element appear up from the bottom of the screen with a fade
+@mixin pop-in {
+  &.ng-animate {
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+  }
+
+  &.ng-enter, &.ng-leave.ng-leave-active {
+    opacity: 0;
+    transform: translateY(5rem);
+  }
+
+  &.ng-leave, &.ng-enter.ng-enter-active {
+    opacity: 1;
+    transform: translateY(0rem);
+  }
+}
+
 /* Engram Farming */
 
 #engram-farming {
@@ -2016,54 +2094,100 @@ button.toast-close-button {
     margin: .25em 0;
   }
 
-  &.ng-animate {
-    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-  }
-
-  &.ng-enter, &.ng-leave.ng-leave-active {
-    opacity: 0;
-    transform: translateY(5rem);
-  }
-
-  &.ng-leave, &.ng-enter.ng-enter-active {
-    opacity: 1;
-    transform: translateY(0rem);
-  }
+  @include pop-in;
 }
 
 /* Clear new items */
 
 .clear-new-items {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
+  display: none;
+  .show-new-items & {
+    display: block;
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
 
-  button {
-    color: white;
-    padding: 1rem 1.5rem;
-    background-color: rgba(128, 128, 128, 1.0);
-    border-radius: 4px;
-    border: none;
+    button {
+      color: white;
+      padding: 1rem 1.5rem;
+      background-color: rgba(128, 128, 128, 1.0);
+      border-radius: 4px;
+      border: none;
+      text-align: center;
+      font-size: 1.5em;
+      transition: .3s background-color;
+      box-shadow: 1px 1px 10px rgba(0, 0, 0, .5);
+      &:hover, &:active {
+        background-color: rgba(232, 165, 52, 1.0);
+      }
+    }
+
+    @include pop-in;
+  }
+}
+
+dim-manifest-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  pointer-events: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .manifest-progress {
+    width: 24rem;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
     text-align: center;
-    font-size: 1.5em;
-    transition: .3s background-color;
+    font-size: 1rem;
+    padding: 1.5rem 1.5rem;
+    background-color: #222;
     box-shadow: 1px 1px 10px rgba(0, 0, 0, .5);
-    &:hover, &:active {
-      background-color: rgba(232, 165, 52, 1.0);
+
+    i {
+      font-size: 2rem;
+      margin-bottom: .5rem;
+    }
+
+    &.ng-animate {
+      transition: opacity 0.3s ease-out;
+    }
+
+    &.ng-enter, &.ng-leave.ng-leave-active {
+      opacity: 0;
+    }
+
+    &.ng-leave, &.ng-enter.ng-enter-active {
+      opacity: 1;
     }
   }
+}
 
-  &.ng-animate {
-    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+.loadout {
+  &.random {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    padding: .5rem;
+    color: #222;
+    text-decoration: none;
+    font-weight: normal;
   }
+}
 
-  &.ng-enter, &.ng-leave.ng-leave-active {
-    opacity: 0;
-    transform: translateY(5rem);
-  }
-
-  &.ng-leave, &.ng-enter.ng-enter-active {
-    opacity: 1;
-    transform: translateY(0rem);
-  }
+.current.character .character-box:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  border-top: 15px solid gold;
+  border-right: 15px solid transparent;
 }

@@ -21,7 +21,6 @@
       document.querySelector('html').style.setProperty("--vault-max-columns", cols);
     });
 
-
     hotkeys.add({
       combo: ['f'],
       description: "Start a search",
@@ -57,6 +56,18 @@
       }
     });
 
+    _.each(dimSettingsService.itemTags, (tag) => {
+      if (tag.hotkey) {
+        hotkeys.add({
+          combo: [tag.hotkey],
+          description: "Mark item as '" + tag.label + "'",
+          callback: function() {
+            $rootScope.$broadcast('dim-item-tag', { tag: tag.type });
+          }
+        });
+      }
+    });
+
     hotkeys.add({
       combo: ['x'],
       description: "Clear new items",
@@ -88,11 +99,11 @@
             result = null;
           });
 
-          if (ga) {
+          // if (ga) {
             // Disable sending pageviews on popups for now, over concerns that we'll go over our free GA limits.
             // Send a virtual pageview event, even though this is a popup
             // ga('send', 'pageview', { page: '/' + name });
-          }
+          // }
         }
       };
     }

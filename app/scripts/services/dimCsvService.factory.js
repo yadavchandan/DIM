@@ -42,11 +42,12 @@
     }
 
     function downloadArmor(items, nameMap) {
-      var header = "Name, Tier, Type, Equippable, Light, Owner, % Leveled, Locked, Equipped, Year, " +
-        "% Quality, % IntQ, % DiscQ, % StrQ, Int, Disc, Str, Perks\n";
+      var header = "Name, Tag, Tier, Type, Equippable, Light, Owner, % Leveled, Locked, Equipped, Year, " +
+        "% Quality, % IntQ, % DiscQ, % StrQ, Int, Disc, Str, Notes, Perks\n";
       var data = "";
       items.forEach(function(item) {
         data += item.name + ", ";
+        data += (item.dimInfo.tag || '') + ", ";
         data += item.tier + ", ";
         data += item.typeName + ", ";
         var equippable = item.classTypeName;
@@ -83,6 +84,7 @@
         data += stats.Intellect ? stats.Intellect.value + ", " : "0, ";
         data += stats.Discipline ? stats.Discipline.value + ", " : "0, ";
         data += stats.Strength ? stats.Strength.value + ", " : "0, ";
+        data += ((item.dimInfo && item.dimInfo.notes) || '') + ", ";
         // if DB is out of date this can be null, can't hurt to be careful
         if (item.talentGrid) {
           data += buildNodeString(item.talentGrid.nodes);
@@ -93,12 +95,13 @@
     }
 
     function downloadWeapons(guns, nameMap) {
-      var header = "Name, Tier, Type, Light, Dmg, Owner, % Leveled, Locked, Equipped, Year," +
+      var header = "Name, Tag, Tier, Type, Light, Dmg, Owner, % Leveled, Locked, Equipped, Year," +
         "AA, Impact, Range, Stability, ROF, Reload, Mag, Equip, " +
-        "Nodes\n";
+        "Notes, Nodes\n";
       var data = "";
       guns.forEach(function(gun) {
         data += gun.name + ", ";
+        data += (gun.dimInfo.tag || '') + ", ";
         data += gun.tier + ", ";
         data += gun.typeName + ", ";
         data += gun.primStat.value + ", ";
@@ -124,29 +127,30 @@
           equipSpeed: 0
         };
         gun.stats.forEach(function(stat) {
-          switch (stat.name) {
-          case 'Aim Assist':
+          switch (stat.statHash) {
+          case 1345609583: // Aim Assist
             stats.aa = stat.value;
             break;
-          case 'Impact':
+          case 4043523819: // Impact
             stats.impact = stat.value;
             break;
-          case 'Range':
+          case 1240592695: // Range
             stats.range = stat.value;
             break;
-          case 'Stability':
+          case 155624089: // Stability
             stats.stability = stat.value;
             break;
-          case 'Rate of Fire':
+          case 4284893193: // Rate of fire
             stats.rof = stat.value;
             break;
-          case 'Reload':
+          case 4188031367: // Reload
             stats.reload = stat.value;
             break;
-          case 'Magazine':
+          case 3871231066: // Magazine
+          case 925767036: // Energy
             stats.magazine = stat.value;
             break;
-          case 'Equip Speed':
+          case 943549884: // Equip Speed
             stats.equipSpeed = stat.value;
             break;
           }
@@ -159,6 +163,7 @@
         data += stats.reload + ", ";
         data += stats.magazine + ", ";
         data += stats.equipSpeed + ", ";
+        data += ((gun.dimInfo && gun.dimInfo.notes) || '') + ", ";
         // haven't seen this null yet, but can't hurt to check since we saw it on armor above
         if (gun.talentGrid) {
           data += buildNodeString(gun.talentGrid.nodes);

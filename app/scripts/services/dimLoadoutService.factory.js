@@ -5,9 +5,14 @@
     .factory('dimLoadoutService', LoadoutService);
 
 
-  LoadoutService.$inject = ['$q', '$rootScope', 'uuid2', 'dimItemService', 'dimStoreService', 'toaster', 'loadingTracker', 'dimPlatformService', 'SyncService', 'dimActionQueue', 'dimBungieService'];
-  function LoadoutService($q, $rootScope, uuid2, dimItemService, dimStoreService, toaster, loadingTracker, dimPlatformService, SyncService, dimActionQueue, dimBungieService) {
+  LoadoutService.$inject = ['$q', '$rootScope', '$filter', 'uuid2', 'dimItemService', 'dimStoreService', 'toaster', 'loadingTracker', 'dimPlatformService', 'SyncService', 'dimActionQueue', 'dimBungieService'];
+  function LoadoutService($q, $rootScope, $filter, uuid2, dimItemService, dimStoreService, toaster, loadingTracker, dimPlatformService, SyncService, dimActionQueue, dimBungieService) {
     var _loadouts = [];
+    var _previousLoadouts = {}; // by character ID
+
+    $rootScope.$on('dim-stores-updated', function() {
+      getLoadouts(true);
+    });
 
     return {
       dialogOpen: false,
@@ -16,7 +21,7 @@
       saveLoadout: saveLoadout,
       addItemToLoadout: addItemToLoadout,
       applyLoadout: applyLoadout,
-      previousLoadouts: {} // by character ID
+      previousLoadouts: _previousLoadouts
     };
 
     function addItemToLoadout(item, $event) {
@@ -61,6 +66,8 @@
         _loadouts = _loadouts.splice(0);
       }
     }
+
+
 
     function getLoadouts(getLatest) {
       var deferred = $q.defer();
@@ -193,19 +200,35 @@
     }
 
     // A special getItem that takes into account the fact that
-    // subclasses have unique IDs.
+    // subclasses have unique IDs, and emblems/shaders/etc are interchangeable.
     function getLoadoutItem(pseudoItem, store) {
       var item = dimItemService.getItem(pseudoItem);
-      if (item.type === 'Class') {
+      if (_.contains(['Class', 'Shader', 'Emblem', 'Emote', 'Ship', 'Horn'], item.type)) {
         item = _.find(store.items, {
           hash: pseudoItem.hash
-        });
+        }) || item;
       }
       return item;
     }
 
-    function applyLoadout(store, loadout) {
+    function applyLoadout(store, loadout, allowUndo = false) {
       return dimActionQueue.queueAction(function() {
+        if (allowUndo) {
+          if (!_previousLoadouts[store.id]) {
+            _previousLoadouts[store.id] = [];
+          }
+
+          if (!store.isVault) {
+            const lastPreviousLoadout = _.last(_previousLoadouts[store.id]);
+            if (lastPreviousLoadout && loadout.id === lastPreviousLoadout.id) {
+              _previousLoadouts[store.id].pop();
+            } else {
+              const previousLoadout = store.loadoutFromCurrentlyEquipped($filter('translate')('before_loadout', { name: loadout.name }));
+              _previousLoadouts[store.id].push(previousLoadout);
+            }
+          }
+        }
+
         var items = angular.copy(_.flatten(_.values(loadout.items)));
         var totalItems = items.length;
 
@@ -412,7 +435,9 @@
         })
         .catch(function(e) {
           scope.failed++;
-          toaster.pop('error', item.name, e.message);
+          if (e.message !== 'move-canceled') {
+            toaster.pop('error', item.name, e.message);
+          }
         })
         .finally(function() {
           // Keep going
@@ -460,7 +485,9 @@
         platform: loadoutPrimitive.platform,
         classType: (_.isUndefined(loadoutPrimitive.classType) ? -1 : loadoutPrimitive.classType),
         version: 'v3.0',
-        items: {}
+        items: {
+          unknown: []
+        }
       };
 
       _.each(loadoutPrimitive.items, function(itemPrimitive) {
@@ -478,6 +505,15 @@
 
           result.items[discriminator] = (result.items[discriminator] || []);
           result.items[discriminator].push(item);
+        } else {
+          item = {
+            id: itemPrimitive.id,
+            hash: itemPrimitive.hash,
+            amount: itemPrimitive.amount,
+            equipped: itemPrimitive.equipped
+          };
+
+          result.items.unknown.push(item);
         }
       });
 
@@ -490,7 +526,9 @@
         name: loadoutPrimitive.name,
         classType: (_.isUndefined(loadoutPrimitive.classType) ? -1 : loadoutPrimitive.classType),
         version: 'v3.0',
-        items: {}
+        items: {
+          unknown: []
+        }
       };
 
       _.each(loadoutPrimitive.items, function(itemPrimitive) {
@@ -506,6 +544,15 @@
 
           result.items[discriminator] = (result.items[discriminator] || []);
           result.items[discriminator].push(item);
+        } else {
+          item = {
+            id: itemPrimitive.id,
+            hash: itemPrimitive.hash,
+            amount: itemPrimitive.amount,
+            equipped: itemPrimitive.equipped
+          };
+
+          result.items.unknown.push(item);
         }
       });
 
@@ -518,7 +565,9 @@
         name: loadoutPrimitive.name,
         classType: -1,
         version: 'v3.0',
-        items: {}
+        items: {
+          unknown: []
+        }
       };
 
       _.each(loadoutPrimitive.items, function(itemPrimitive) {
@@ -531,6 +580,15 @@
           result.items[discriminator].push(item);
 
           item.equipped = true;
+        } else {
+          item = {
+            id: itemPrimitive.id,
+            hash: itemPrimitive.hash,
+            amount: itemPrimitive.amount,
+            equipped: itemPrimitive.equipped
+          };
+
+          result.items.unknown.push(item);
         }
       });
 

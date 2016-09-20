@@ -2,88 +2,117 @@
   'use strict';
 
   angular.module('dimApp')
-    .factory('dimSearchService', function() {
+    .factory('dimSearchService', function(dimSettingsService) {
+      const categoryFilters = {
+        pulserifle: ['CATEGORY_PULSE_RIFLE'],
+        scoutrifle: ['CATEGORY_SCOUT_RIFLE'],
+        handcannon: ['CATEGORY_HAND_CANNON'],
+        autorifle: ['CATEGORY_AUTO_RIFLE'],
+        primaryweaponengram: ['CATEGORY_PRIMARY_WEAPON', 'CATEGORY_ENGRAM'],
+        sniperrifle: ['CATEGORY_SNIPER_RIFLE'],
+        shotgun: ['CATEGORY_SHOTGUN'],
+        fusionrifle: ['CATEGORY_FUSION_RIFLE'],
+        specialweaponengram: ['CATEGORY_SPECIAL_WEAPON', 'CATEGORY_ENGRAM'],
+        rocketlauncher: ['CATEGORY_ROCKET_LAUNCHER'],
+        machinegun: ['CATEGORY_MACHINE_GUN'],
+        heavyweaponengram: ['CATEGORY_HEAVY_WEAPON', 'CATEGORY_ENGRAM'],
+        sidearm: ['CATEGORY_SIDEARM'],
+        sword: ['CATEGORY_SWORD']
+      };
+
+      /**
+       * Filter translation sets. Left-hand is the filter to run from filterFns, right side are possible filterResult
+       * values that will set the left-hand to the "match."
+       */
+      var filterTrans = {
+        dmg: ['arc', 'solar', 'void', 'kinetic'],
+        type: ['primary', 'special', 'heavy', 'helmet', 'leg', 'gauntlets', 'chest', 'class', 'classitem', 'artifact', 'ghost', 'horn', 'consumable', 'ship', 'material', 'vehicle', 'emblem', 'bounties', 'quests', 'messages', 'missions', 'emote'],
+        tier: ['common', 'uncommon', 'rare', 'legendary', 'exotic', 'white', 'green', 'blue', 'purple', 'yellow'],
+        incomplete: ['incomplete'],
+        complete: ['complete'],
+        xpcomplete: ['xpcomplete'],
+        xpincomplete: ['xpincomplete', 'needsxp'],
+        upgraded: ['upgraded'],
+        classType: ['titan', 'hunter', 'warlock'],
+        dupe: ['dupe', 'duplicate'],
+        unascended: ['unascended', 'unassended', 'unasscended'],
+        ascended: ['ascended', 'assended', 'asscended'],
+        reforgeable: ['reforgeable', 'reforge', 'rerollable', 'reroll'],
+        tracked: ['tracked'],
+        untracked: ['untracked'],
+        locked: ['locked'],
+        unlocked: ['unlocked'],
+        stackable: ['stackable'],
+        engram: ['engram'],
+        category: _.keys(categoryFilters),
+        infusable: ['infusable', 'infuse'],
+        stattype: ['intellect', 'discipline', 'strength'],
+        new: ['new'],
+        glimmer: ['glimmeritem', 'glimmerboost', 'glimmersupply']
+      };
+
+      var keywords = _.flatten(_.flatten(_.values(filterTrans)).map(function(word) {
+        return ["is:" + word, "not:" + word];
+      }));
+
+      dimSettingsService.itemTags.forEach(function(tag) {
+        if (tag.type) {
+          keywords.push("tag:" + tag.type);
+        } else {
+          keywords.push("tag:none");
+        }
+      });
+
+      // Filters that operate on ranges (>, <, >=, <=)
+      var ranges = ['light', 'level', 'quality', 'percentage'];
+      ranges.forEach(function(range) {
+        keywords.push(range + ":<", range + ":>", range + ":<=", range + ":>=");
+      });
+
+      // free form notes on items
+      keywords.push('notes:');
+
       return {
-        query: ''
+        query: '',
+        filterTrans: filterTrans,
+        keywords: keywords,
+        categoryFilters: categoryFilters
       };
     })
     .directive('dimSearchFilter', SearchFilter);
 
-  SearchFilter.$inject = [];
+  SearchFilter.$inject = ['dimSearchService'];
 
-  function SearchFilter() {
+  function SearchFilter(dimSearchService) {
     return {
       controller: SearchFilterCtrl,
       controllerAs: 'vm',
-      link: Link,
+      link: function Link(scope, element) {
+        element.find('input').textcomplete([
+          {
+            words: dimSearchService.keywords,
+            match: /\b((li|le|qu|pe|is:|not:|tag:|notes:)\w*)$/,
+            search: function(term, callback) {
+              callback($.map(this.words, function(word) {
+                return word.indexOf(term) === 0 ? word : null;
+              }));
+            },
+            index: 1,
+            replace: function(word) {
+              return (word.indexOf('is:') === 0 && word.indexOf('not:') === 0)
+                ? (word + ' ') : word;
+            }
+          }
+        ], {
+          zIndex: 1000
+        });
+      },
       bindToController: true,
       restrict: 'A',
       template: [
-        '<input id="filter-input" placeholder="Search item/perk or is:arc" type="search" name="filter" ng-model="vm.search.query" ng-model-options="{ debounce: 500 }" ng-trim="true">'
+        '<input id="filter-input" placeholder="{{\'filter_help\' | translate}}" type="search" name="filter" ng-model="vm.search.query" ng-model-options="{ debounce: 500 }" ng-trim="true">'
       ].join('')
     };
-  }
-
-  /**
-   * Filter translation sets. Left-hand is the filter to run from filterFns, right side are possible filterResult
-   * values that will set the left-hand to the "match."
-   */
-  var filterTrans = {
-    dmg: ['arc', 'solar', 'void', 'kinetic'],
-    type: ['primary', 'special', 'heavy', 'helmet', 'leg', 'gauntlets', 'chest', 'class', 'classitem', 'artifact', 'ghost', 'horn', 'consumable', 'ship', 'material', 'vehicle', 'emblem', 'bounties', 'quests', 'messages', 'missions', 'emote'],
-    tier: ['common', 'uncommon', 'rare', 'legendary', 'exotic', 'white', 'green', 'blue', 'purple', 'yellow'],
-    incomplete: ['incomplete'],
-    complete: ['complete'],
-    xpcomplete: ['xpcomplete'],
-    xpincomplete: ['xpincomplete', 'needsxp'],
-    upgraded: ['upgraded'],
-    classType: ['titan', 'hunter', 'warlock'],
-    dupe: ['dupe', 'duplicate'],
-    unascended: ['unascended', 'unassended', 'unasscended'],
-    ascended: ['ascended', 'assended', 'asscended'],
-    reforgeable: ['reforgeable', 'reforge', 'rerollable', 'reroll'],
-    tracked: ['tracked'],
-    untracked: ['untracked'],
-    locked: ['locked'],
-    unlocked: ['unlocked'],
-    stackable: ['stackable'],
-    engram: ['engram'],
-    weaponClass: ['pulserifle', 'scoutrifle', 'handcannon', 'autorifle', 'primaryweaponengram', 'sniperrifle', 'shotgun', 'fusionrifle', 'specialweaponengram', 'rocketlauncher', 'machinegun', 'heavyweaponengram', 'sidearm', 'sword'],
-    year: ['year1', 'year2'],
-    infusable: ['infusable', 'infuse'],
-    stattype: ['intellect', 'discipline', 'strength'],
-    new: ['new']
-  };
-
-  var keywords = _.flatten(_.flatten(_.values(filterTrans)).map(function(word) {
-    return ["is:" + word, "not:" + word];
-  }));
-
-  // Filters that operate on ranges (>, <, >=, <=)
-  var ranges = ['light', 'level', 'quality', 'percentage'];
-  ranges.forEach(function(range) {
-    keywords.push(range + ":<", range + ":>", range + ":<=", range + ":>=");
-  });
-
-  function Link(scope, element) {
-    element.find('input').textcomplete([
-      {
-        words: keywords,
-        match: /\b((li|le|qu|pe|is:|not:)\w*)$/,
-        search: function(term, callback) {
-          callback($.map(this.words, function(word) {
-            return word.indexOf(term) === 0 ? word : null;
-          }));
-        },
-        index: 1,
-        replace: function(word) {
-          return (word.indexOf('is:') === 0 && word.indexOf('not:') === 0)
-            ? (word + ' ') : word;
-        }
-      }
-    ], {
-      zIndex: 1000
-    });
   }
 
   SearchFilterCtrl.$inject = ['$scope', 'dimStoreService', 'dimSearchService'];
@@ -145,7 +174,12 @@
     vm.filter = function() {
       var filterValue = (vm.search.query) ? vm.search.query.toLowerCase() : '';
       filterValue = filterValue.replace(/\s+and\s+/, ' ');
-      var searchTerms = filterValue.split(/\s+/);
+
+      // could probably tidy this regex, just a quick hack to support multi term:
+      // [^\s]*"[^"]*" -> match is:"stuff here"
+      // [^\s]*'[^']*' -> match is:'stuff here'
+      // [^\s"']+' -> match is:stuff
+      var searchTerms = filterValue.match(/[^\s]*"[^"]*"|[^\s]*'[^']*'|[^\s"']+/g);
       var filter;
       var predicate = '';
       var filterFn;
@@ -156,14 +190,16 @@
       }
 
       _.each(searchTerms, function(term) {
+        term = term.replace(/'/g, '').replace(/"/g, '');
+
         if (term.indexOf('is:') >= 0) {
           filter = term.replace('is:', '');
           if (_cachedFilters[filter]) {
             predicate = _cachedFilters[filter];
             addPredicate(predicate, filter);
           } else {
-            for (const key in filterTrans) {
-              if (filterTrans.hasOwnProperty(key) && filterTrans[key].indexOf(filter) > -1) {
+            for (const key in dimSearchService.filterTrans) {
+              if (dimSearchService.filterTrans.hasOwnProperty(key) && dimSearchService.filterTrans[key].indexOf(filter) > -1) {
                 predicate = key;
                 _cachedFilters[filter] = key;
                 addPredicate(predicate, filter);
@@ -177,8 +213,8 @@
             predicate = _cachedFilters[filter];
             addPredicate(predicate, filter, true);
           } else {
-            for (const key in filterTrans) {
-              if (filterTrans.hasOwnProperty(key) && filterTrans[key].indexOf(filter) > -1) {
+            for (const key in dimSearchService.filterTrans) {
+              if (dimSearchService.filterTrans.hasOwnProperty(key) && dimSearchService.filterTrans[key].indexOf(filter) > -1) {
                 predicate = key;
                 _cachedFilters[filter] = key;
                 addPredicate(predicate, filter, true);
@@ -186,6 +222,12 @@
               }
             }
           }
+        } else if (term.indexOf('tag:') >= 0) {
+          filter = term.replace('tag:', '');
+          addPredicate("itemtags", filter);
+        } else if (term.indexOf('notes:') >= 0) {
+          filter = term.replace('notes:', '');
+          addPredicate("notes", filter);
         } else if (term.indexOf('light:') >= 0 || term.indexOf('level:') >= 0) {
           filter = term.replace('light:', '').replace('level:', '');
           addPredicate("light", filter);
@@ -211,11 +253,10 @@
 
         // Filter vendor items
         _.each(store.vendors, function(vendor) {
-          _.each(vendor.items.armor, function(item) {
-            item.visible = (filters.length > 0) ? filterFn(item) : true;
-          });
-          _.each(vendor.items.weapons, function(item) {
-            item.visible = (filters.length > 0) ? filterFn(item) : true;
+          _.each(vendor.items, function(items) {
+            _.each(items, function(item) {
+              item.visible = (filters.length > 0) ? filterFn(item) : true;
+            });
           });
         });
       });
@@ -332,6 +373,36 @@
 
         return (item.classType === value);
       },
+      glimmer: function(predicate, item) {
+        var boosts = [
+          1043138475, // -black-wax-idol
+          1772853454, // -blue-polyphage
+          3783295803, // -ether-seeds
+          3446457162  // -resupply-codes
+        ];
+        var supplies = [
+          269776572, // -house-banners
+          3632619276, // -silken-codex
+          2904517731, // -axiomatic-beads
+          1932910919 // -network-keys
+        ];
+
+        switch (predicate) {
+        case 'glimmerboost':
+          return boosts.includes(item.hash);
+        case 'glimmersupply':
+          return supplies.includes(item.hash);
+        case 'glimmeritem':
+          return boosts.includes(item.hash) || supplies.includes(item.hash);
+        }
+        return false;
+      },
+      itemtags: function(predicate, item) {
+        return item.dimInfo && (item.dimInfo.tag === predicate || (item.dimInfo.tag === undefined && predicate === 'none'));
+      },
+      notes: function(predicate, item) {
+        return item.dimInfo && item.dimInfo.notes && item.dimInfo.notes.toLocaleLowerCase().includes(predicate.toLocaleLowerCase());
+      },
       stattype: function(predicate, item) {
         return item.stats && _.any(item.stats, function(s) { return s.name.toLowerCase() === predicate && s.value > 0; });
       },
@@ -344,14 +415,17 @@
       infusable: function(predicate, item) {
         return item.talentGrid && item.talentGrid.infusable;
       },
-      weaponClass: function(predicate, item) {
-        return predicate.toLowerCase().replace(/\s/g, '') === item.weaponClass;
+      category: function(predicate, item) {
+        const categories = dimSearchService.categoryFilters[predicate.toLowerCase().replace(/\s/g, '')];
+        return categories && categories.length &&
+          _.all(categories, (c) => item.inCategory(c));
       },
       keyword: function(predicate, item) {
         return item.name.toLowerCase().indexOf(predicate) >= 0 ||
           // Search perks as well
           (item.talentGrid && _.any(item.talentGrid.nodes, function(node) {
-            return node.name.toLowerCase().indexOf(predicate) >= 0;
+            // Fixed #798 by searching on the description too.
+            return (node.name + ' ' + node.description).toLowerCase().indexOf(predicate) >= 0;
           }));
       },
       light: function(predicate, item) {
