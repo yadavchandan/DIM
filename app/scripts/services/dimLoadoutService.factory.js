@@ -120,9 +120,8 @@
           };
 
           return dimBungieService.getMembership().then(function(membershipId) {
-
             _.each(loadoutPrimitives, function(l) {
-              if(!data['loadouts-v4.0'][membershipId]) {
+              if (!data['loadouts-v4.0'][membershipId]) {
                 data['loadouts-v4.0'][membershipId] = [];
               }
               data['loadouts-v4.0'][membershipId].push(l.id);

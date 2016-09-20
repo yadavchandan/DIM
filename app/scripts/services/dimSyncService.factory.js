@@ -4,14 +4,14 @@
   angular.module('dimApp')
     .factory('SyncService', SyncService);
 
-  SyncService.$inject = ['$q', '$window'];
+  SyncService.$inject = ['$q'];
 
   function toOpenLoadout(cached) {
     var ret = {};
-    if(!cached['loadouts-v4.0']) {
+    if (!cached['loadouts-v4.0']) {
       return ret;
     }
-    for(var membershipId in cached['loadouts-v4.0']) {
+    for (var membershipId in cached['loadouts-v4.0']) {
       var loadouts = _.map(cached['loadouts-v4.0'][membershipId], function(id) {
         return cached[id];
       });
@@ -62,7 +62,7 @@
     var ret = {
       'loadouts-v4.0': {}
     };
-    for(var membershipId in loadouts) {
+    for (var membershipId in loadouts) {
       loadouts[membershipId].forEach(function(loadout) {
         var items = [];
         loadout.equip.forEach(function(item) {
@@ -96,13 +96,12 @@
           items: items
         };
         ret['loadouts-v4.0'][membershipId].push(loadout.guid);
-    });
-
+      });
     }
     return ret;
   }
 
-  function SyncService($q, $window) {
+  function SyncService($q) {
     var cached; // cached is the data in memory,
     var drive = { // drive api data
       client_id: '$GAPI_VERSION.apps.googleusercontent.com',
@@ -127,7 +126,6 @@
 
     // promise to find the file id from google drive
     function getFileId(fileName) {
-
       // create a file in the appDataFolder
       function createFile(fileName, callback) {
         gapi.client.drive.files.create({
@@ -137,7 +135,7 @@
             parents: ['appDataFolder']
           }
         }).execute(function(resp) {
-          if(!resp || !resp.id) {
+          if (!resp || !resp.id) {
             console.log(resp);
             return;
           }
@@ -152,7 +150,7 @@
           spaces: 'appDataFolder',
           fields: 'files(id)'
         }).execute(function(resp) {
-          if(!resp || !resp.files) {
+          if (!resp || !resp.files) {
             console.warn('Error connecting to Open Loadouts', resp);
             return;
           }
@@ -170,7 +168,7 @@
       gapi.client.load('drive', 'v3', function() {
         // grab or create file id
         getOrCreateId(fileName, function(id) {
-          console.log('got ', id, fileName)
+          console.log('got ', id, fileName);
           ret.resolve(id);
         });
       });
@@ -264,7 +262,7 @@
 
     // save data {key: value}
     function set(value, PUT) {
-      if(!cached) {
+      if (!cached) {
         return;
       }
       //----
@@ -294,11 +292,11 @@
         var toSync = cached;
 
         // don't chrome.sync tags if we're connected to drive (to save chrome sync space)
-        if(cached.tagFileId) {
+        if (cached.tagFileId) {
           toSync = _.omit(cached, ['dimItemInfo-1', 'dimItemInfo-2']);
         }
 
-        console.log('saving', cached)
+        console.log('saving', cached);
 
         chrome.storage.sync.set(toSync, function() {
           if (chrome.runtime.lastError) {
