@@ -39,7 +39,7 @@
             _loadouts.splice(0);
 
             _.each(ids, function(id) {
-              _loadouts.push(hydrate(id));
+              _loadouts.push(hydrate(data[id]));
             });
           });
         } else if (version === 'v3.0') {
@@ -120,8 +120,13 @@
           };
 
           return dimBungieService.getMembership().then(function(membershipId) {
-            data['loadouts-v4.0'][membershipId] = _.map(loadoutPrimitives, function(l) {
-              return l;
+
+            _.each(loadoutPrimitives, function(l) {
+              if(!data['loadouts-v4.0'][membershipId]) {
+                data['loadouts-v4.0'][membershipId] = [];
+              }
+              data['loadouts-v4.0'][membershipId].push(l.id);
+              data[l.id] = l;
             });
 
             SyncService.set(data);
@@ -191,8 +196,8 @@
         'v1.0': hydratev1d0,
         'v2.0': hydratev2d0,
         'v3.0': hydratev3d0,
-        'v4.0': hydratev4d0,
-        default: hydratev4d0
+        'v4.0': hydratev3d0,
+        default: hydratev3d0
       };
 
       // v1.0 did not have a 'version' property so if it fails, we'll assume.
@@ -447,44 +452,13 @@
       return promise;
     }
 
-    function hydratev4d0(loadoutPrimitive) {
-      var result = {
-        id: loadoutPrimitive.id,
-        name: loadoutPrimitive.name,
-        platform: loadoutPrimitive.platform,
-        classType: (_.isUndefined(loadoutPrimitive.classType) ? -1 : loadoutPrimitive.classType),
-        version: 'v4.0',
-        items: {}
-      };
-
-      _.each(loadoutPrimitive.items, function(itemPrimitive) {
-        var item = angular.copy(dimItemService.getItem({
-          id: itemPrimitive.id,
-          hash: itemPrimitive.hash
-        }));
-
-        if (item) {
-          var discriminator = item.type.toLowerCase();
-
-          item.equipped = itemPrimitive.equipped;
-
-          item.amount = itemPrimitive.amount;
-
-          result.items[discriminator] = (result.items[discriminator] || []);
-          result.items[discriminator].push(item);
-        }
-      });
-
-      return result;
-    }
-
     function hydratev3d0(loadoutPrimitive) {
       var result = {
         id: loadoutPrimitive.id,
         name: loadoutPrimitive.name,
         platform: loadoutPrimitive.platform,
         classType: (_.isUndefined(loadoutPrimitive.classType) ? -1 : loadoutPrimitive.classType),
-        version: 'v3.0',
+        version: 'v4.0',
         items: {
           unknown: []
         }
@@ -525,7 +499,7 @@
         id: loadoutPrimitive.id,
         name: loadoutPrimitive.name,
         classType: (_.isUndefined(loadoutPrimitive.classType) ? -1 : loadoutPrimitive.classType),
-        version: 'v3.0',
+        version: 'v4.0',
         items: {
           unknown: []
         }
@@ -564,7 +538,7 @@
         id: uuid2.newguid(),
         name: loadoutPrimitive.name,
         classType: -1,
-        version: 'v3.0',
+        version: 'v4.0',
         items: {
           unknown: []
         }

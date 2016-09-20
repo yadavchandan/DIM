@@ -6,11 +6,18 @@
 
   SyncService.$inject = ['$q', '$window'];
 
-  function toOpenLoadout(loadouts) {
+  function toOpenLoadout(cached) {
     var ret = {};
-    for(var membershipId in loadouts) {
+    if(!cached['loadouts-v4.0']) {
+      return ret;
+    }
+    for(var membershipId in cached['loadouts-v4.0']) {
+      var loadouts = _.map(cached['loadouts-v4.0'][membershipId], function(id) {
+        return cached[id];
+      });
+
       ret[membershipId] = [];
-      loadouts[membershipId].forEach(function(loadout) {
+      loadouts.forEach(function(loadout) {
         ret[membershipId].push({
           guid: loadout.id,
           name: loadout.name,
@@ -44,11 +51,18 @@
     return ret;
   }
 
-  function toDIMLoadout(loadouts) {
-    var ret = {};
-    for(var membershipId in loadouts) {
-      ret[membershipId] = [];
+  function toOpenTag(cached) {
+    return {
+      xb1: cached['dimItemInfo-1'],
+      ps4: cached['dimItemInfo-2'],
+    };
+  }
 
+  function toDIMLoadout(loadouts) {
+    var ret = {
+      'loadouts-v4.0': {}
+    };
+    for(var membershipId in loadouts) {
       loadouts[membershipId].forEach(function(loadout) {
         var items = [];
         loadout.equip.forEach(function(item) {
@@ -73,15 +87,17 @@
           });
         });
 
-        ret[membershipId].push({
+        ret[loadout.guid] = {
           id: loadout.guid,
           name: loadout.name,
           platform: loadout.platform,
           classType: loadout.subclass,
           version: 'v4.0',
           items: items
-        });
-      });
+        };
+        ret['loadouts-v4.0'][membershipId].push(loadout.guid);
+    });
+
     }
     return ret;
   }
@@ -96,12 +112,16 @@
     var ready = $q.defer();
 
     function init() {
-      return ready.resolve();
+      ready.resolve();
     }
 
     function revokeDrive() {
+      console.warn('error managing drive data. revoking drive.');
       if (cached && cached.loadoutFileId) {
         remove('loadoutFileId');
+      }
+      if (cached && cached.tagFileId) {
+        remove('tagFileId');
       }
     }
 
@@ -121,7 +141,7 @@
             console.log(resp);
             return;
           }
-          callack(resp.id);
+          callback(resp.id);
         });
       }
 
@@ -150,7 +170,8 @@
       gapi.client.load('drive', 'v3', function() {
         // grab or create file id
         getOrCreateId(fileName, function(id) {
-          return ret.resolve(id);
+          console.log('got ', id, fileName)
+          ret.resolve(id);
         });
       });
       return ret.promise;
@@ -163,7 +184,7 @@
       // we're a chrome app so we do this
       if (chrome.identity) {
         chrome.identity.getAuthToken({
-          interactive: true
+          interactive: false
         }, function(token) {
           if (chrome.runtime.lastError) {
             revokeDrive();
@@ -172,11 +193,13 @@
           gapi.auth.setToken({
             access_token: token
           });
-          getFileId("Open.Loadout").then(function(id) {
+
+          $q.all([getFileId("Open.Loadout"), getFileId("Open.Tags")]).then(function(resp) {
             set({
-              loadoutFileId: id
+              loadoutFileId: resp[0],
+              tagFileId: resp[1]
             });
-            authed.resolve(id);
+            authed.resolve();
           });
         });
       } else {
@@ -187,11 +210,13 @@
             return;
           }
           drive.immediate = result && !result.error;
-          getFileId("Open.Loadout").then(function(id) {
+
+          $q.all([getFileId("Open.Loadout"), getFileId("Open.Tags")]).then(function(resp) {
             set({
-              loadoutFileId: id
+              loadoutFileId: resp[0],
+              tagFileId: resp[1]
             });
-            authed.resolve(id);
+            authed.resolve();
           });
         });
       }
@@ -213,6 +238,28 @@
       });
 
       return d.promise;
+    }
+
+    function saveDriveFile(id, content) {
+      // save to google drive
+      if (!id) {
+        return;
+      }
+      gapi.client.request({
+        path: '/upload/drive/v3/files/' + id,
+        method: 'PATCH',
+        params: {
+          uploadType: 'media',
+          alt: 'json'
+        },
+        body: content
+      }).execute(function(resp) {
+        if (resp && resp.error && (resp.error.code === 401 || resp.error.code === 404)) {
+          console.log('error saving. revoking drive.', resp);
+          revokeDrive();
+          return;
+        }
+      });
     }
 
     // save data {key: value}
@@ -239,38 +286,29 @@
         cached = value;
       }
 
-      console.log('saving', cached)
-
       // save to local storage
       localStorage.setItem('DIM', JSON.stringify(cached));
 
       // save to chrome sync
       if (chrome.storage && chrome.storage.sync) {
-        chrome.storage.sync.set(cached, function() {
+        var toSync = cached;
+
+        // don't chrome.sync tags if we're connected to drive (to save chrome sync space)
+        if(cached.tagFileId) {
+          toSync = _.omit(cached, ['dimItemInfo-1', 'dimItemInfo-2']);
+        }
+
+        console.log('saving', cached)
+
+        chrome.storage.sync.set(toSync, function() {
           if (chrome.runtime.lastError) {
             //            console.log('error with chrome sync.')
           }
         });
       }
 
-      // save to google drive
-      if (cached.loadoutFileId) {
-        gapi.client.request({
-          path: '/upload/drive/v3/files/' + cached.loadoutFileId,
-          method: 'PATCH',
-          params: {
-            uploadType: 'media',
-            alt: 'json'
-          },
-          body: toOpenLoadout(cached['loadouts-v4.0'])
-        }).execute(function(resp) {
-          if (resp && resp.error && (resp.error.code === 401 || resp.error.code === 404)) {
-            console.log('error saving. revoking drive.');
-            revokeDrive();
-            return;
-          }
-        });
-      }
+      saveDriveFile(cached.loadoutFileId, toOpenLoadout(cached));
+      saveDriveFile(cached.tagFileId, toOpenTag(cached));
     }
 
     // get DIM saved data
@@ -314,8 +352,10 @@
           cached = data;
 
           ready.promise.then(authorize).then(function() {
-            getDriveFile(cached.loadoutFileId).then(function(data) {
-              cached['loadouts-v4.0'] = toDIMLoadout(data.result);
+            $q.all([getDriveFile(cached.loadoutFileId), getDriveFile(cached.tagFileId)]).then(function(resp) {
+              angular.extend(cached, toDIMLoadout(resp[0].result));
+              cached['dimItemInfo-' + cached.platformType] = resp[1].result;
+
               deferred.resolve(cached);
             });
           });
