@@ -775,7 +775,7 @@
 
     function buildTalentGrid(item, talentDefs, progressDefs) {
       var talentGridDef = talentDefs[item.talentGridHash];
-      if (!item.progression || !talentGridDef) {
+      if (!item.progression || !talentGridDef || !item.nodes || !item.nodes.length) {
         return undefined;
       }
 
@@ -1265,6 +1265,9 @@
     }
 
     function dropNewItem(item) {
+      if (!item.isNew) {
+        return;
+      }
       _removedNewItems.add(item.id);
       item.isNew = false;
       loadNewItems(dimPlatformService.getActive()).then((newItems) => {
