@@ -117,12 +117,20 @@ module.exports = function(grunt) {
           to: betaVersion
         }]
       },
-      gapi_key: {
+      gapi_beta_key: {
         src: ['dist/**/*.{json,js}'],
         overwrite: true,
         replacements: [{
           from: '$GAPI_VERSION',
           to: '530625799361-evv1thmjunrkl9m4rof6g7cdg3ci0cma'
+        }]
+      },
+      gapi_key: {
+        src: ['dist/**/*.{json,js}'],
+        overwrite: true,
+        replacements: [{
+          from: '$GAPI_VERSION',
+          to: '-tbd-'
         }]
       }
     },
@@ -253,7 +261,7 @@ module.exports = function(grunt) {
     'build',
     'copy:beta_icons_chrome',
     'replace:beta_version',
-    'replace:gapi_key',
+    'replace:gapi_beta_key',
     'compress:chrome',
     'webstore_upload:beta',
     'log_beta_version'
@@ -270,6 +278,7 @@ module.exports = function(grunt) {
   grunt.registerTask('build_extension', [
     'build',
     'replace:main_version',
+    'replace:gapi_key',
     'compress:chrome',
     'compress:firefox',
   ]);
