@@ -2,59 +2,65 @@
   'use strict';
 
   angular.module('dimApp')
-    .factory('dimSearchService', function(dimSettingsService) {
-      const categoryFilters = {
-        pulserifle: ['CATEGORY_PULSE_RIFLE'],
-        scoutrifle: ['CATEGORY_SCOUT_RIFLE'],
-        handcannon: ['CATEGORY_HAND_CANNON'],
-        autorifle: ['CATEGORY_AUTO_RIFLE'],
-        primaryweaponengram: ['CATEGORY_PRIMARY_WEAPON', 'CATEGORY_ENGRAM'],
-        sniperrifle: ['CATEGORY_SNIPER_RIFLE'],
-        shotgun: ['CATEGORY_SHOTGUN'],
-        fusionrifle: ['CATEGORY_FUSION_RIFLE'],
-        specialweaponengram: ['CATEGORY_SPECIAL_WEAPON', 'CATEGORY_ENGRAM'],
-        rocketlauncher: ['CATEGORY_ROCKET_LAUNCHER'],
-        machinegun: ['CATEGORY_MACHINE_GUN'],
-        heavyweaponengram: ['CATEGORY_HEAVY_WEAPON', 'CATEGORY_ENGRAM'],
-        sidearm: ['CATEGORY_SIDEARM'],
-        sword: ['CATEGORY_SWORD']
-      };
+    .factory('dimSearchService', SearchService)
+    .directive('dimSearchFilter', SearchFilter);
 
-      /**
-       * Filter translation sets. Left-hand is the filter to run from filterFns, right side are possible filterResult
-       * values that will set the left-hand to the "match."
-       */
-      var filterTrans = {
-        dmg: ['arc', 'solar', 'void', 'kinetic'],
-        type: ['primary', 'special', 'heavy', 'helmet', 'leg', 'gauntlets', 'chest', 'class', 'classitem', 'artifact', 'ghost', 'horn', 'consumable', 'ship', 'material', 'vehicle', 'emblem', 'bounties', 'quests', 'messages', 'missions', 'emote'],
-        tier: ['common', 'uncommon', 'rare', 'legendary', 'exotic', 'white', 'green', 'blue', 'purple', 'yellow'],
-        incomplete: ['incomplete'],
-        complete: ['complete'],
-        xpcomplete: ['xpcomplete'],
-        xpincomplete: ['xpincomplete', 'needsxp'],
-        upgraded: ['upgraded'],
-        classType: ['titan', 'hunter', 'warlock'],
-        dupe: ['dupe', 'duplicate'],
-        unascended: ['unascended', 'unassended', 'unasscended'],
-        ascended: ['ascended', 'assended', 'asscended'],
-        reforgeable: ['reforgeable', 'reforge', 'rerollable', 'reroll'],
-        tracked: ['tracked'],
-        untracked: ['untracked'],
-        locked: ['locked'],
-        unlocked: ['unlocked'],
-        stackable: ['stackable'],
-        engram: ['engram'],
-        category: _.keys(categoryFilters),
-        infusable: ['infusable', 'infuse'],
-        stattype: ['intellect', 'discipline', 'strength'],
-        new: ['new'],
-        glimmer: ['glimmeritem', 'glimmerboost', 'glimmersupply']
-      };
+  SearchService.$inject = ['dimSettingsService', 'dimFeatureFlags'];
+  function SearchService(dimSettingsService, dimFeatureFlags) {
+    const categoryFilters = {
+      pulserifle: ['CATEGORY_PULSE_RIFLE'],
+      scoutrifle: ['CATEGORY_SCOUT_RIFLE'],
+      handcannon: ['CATEGORY_HAND_CANNON'],
+      autorifle: ['CATEGORY_AUTO_RIFLE'],
+      primaryweaponengram: ['CATEGORY_PRIMARY_WEAPON', 'CATEGORY_ENGRAM'],
+      sniperrifle: ['CATEGORY_SNIPER_RIFLE'],
+      shotgun: ['CATEGORY_SHOTGUN'],
+      fusionrifle: ['CATEGORY_FUSION_RIFLE'],
+      specialweaponengram: ['CATEGORY_SPECIAL_WEAPON', 'CATEGORY_ENGRAM'],
+      rocketlauncher: ['CATEGORY_ROCKET_LAUNCHER'],
+      machinegun: ['CATEGORY_MACHINE_GUN'],
+      heavyweaponengram: ['CATEGORY_HEAVY_WEAPON', 'CATEGORY_ENGRAM'],
+      sidearm: ['CATEGORY_SIDEARM'],
+      sword: ['CATEGORY_SWORD']
+    };
 
-      var keywords = _.flatten(_.flatten(_.values(filterTrans)).map(function(word) {
-        return ["is:" + word, "not:" + word];
-      }));
+    /**
+     * Filter translation sets. Left-hand is the filter to run from filterFns, right side are possible filterResult
+     * values that will set the left-hand to the "match."
+     */
+    var filterTrans = {
+      dmg: ['arc', 'solar', 'void', 'kinetic'],
+      type: ['primary', 'special', 'heavy', 'helmet', 'leg', 'gauntlets', 'chest', 'class', 'classitem', 'artifact', 'ghost', 'horn', 'consumable', 'ship', 'material', 'vehicle', 'emblem', 'bounties', 'quests', 'messages', 'missions', 'emote'],
+      tier: ['common', 'uncommon', 'rare', 'legendary', 'exotic', 'white', 'green', 'blue', 'purple', 'yellow'],
+      incomplete: ['incomplete'],
+      complete: ['complete'],
+      xpcomplete: ['xpcomplete'],
+      xpincomplete: ['xpincomplete', 'needsxp'],
+      upgraded: ['upgraded'],
+      classType: ['titan', 'hunter', 'warlock'],
+      dupe: ['dupe', 'duplicate'],
+      unascended: ['unascended', 'unassended', 'unasscended'],
+      ascended: ['ascended', 'assended', 'asscended'],
+      reforgeable: ['reforgeable', 'reforge', 'rerollable', 'reroll'],
+      tracked: ['tracked'],
+      untracked: ['untracked'],
+      locked: ['locked'],
+      unlocked: ['unlocked'],
+      stackable: ['stackable'],
+      engram: ['engram'],
+      category: _.keys(categoryFilters),
+      infusable: ['infusable', 'infuse'],
+      stattype: ['intellect', 'discipline', 'strength'],
+      inloadout: ['inloadout'],
+      new: ['new'],
+      glimmer: ['glimmeritem', 'glimmerboost', 'glimmersupply']
+    };
 
+    var keywords = _.flatten(_.flatten(_.values(filterTrans)).map(function(word) {
+      return ["is:" + word, "not:" + word];
+    }));
+
+    if (dimFeatureFlags.tagsEnabled) {
       dimSettingsService.itemTags.forEach(function(tag) {
         if (tag.type) {
           keywords.push("tag:" + tag.type);
@@ -62,24 +68,26 @@
           keywords.push("tag:none");
         }
       });
+    }
 
-      // Filters that operate on ranges (>, <, >=, <=)
-      var ranges = ['light', 'level', 'quality', 'percentage'];
-      ranges.forEach(function(range) {
-        keywords.push(range + ":<", range + ":>", range + ":<=", range + ":>=");
-      });
+    // Filters that operate on ranges (>, <, >=, <=)
+    var ranges = ['light', 'level', 'quality', 'percentage'];
+    ranges.forEach(function(range) {
+      keywords.push(range + ":<", range + ":>", range + ":<=", range + ":>=");
+    });
 
-      // free form notes on items
+    // free form notes on items
+    if (dimFeatureFlags.tagsEnabled) {
       keywords.push('notes:');
+    }
 
-      return {
-        query: '',
-        filterTrans: filterTrans,
-        keywords: keywords,
-        categoryFilters: categoryFilters
-      };
-    })
-    .directive('dimSearchFilter', SearchFilter);
+    return {
+      query: '',
+      filterTrans: filterTrans,
+      keywords: keywords,
+      categoryFilters: categoryFilters
+    };
+  }
 
   SearchFilter.$inject = ['dimSearchService'];
 
@@ -280,7 +288,7 @@
         return item.dmg === predicate;
       },
       type: function(predicate, item) {
-        return item.type.toLowerCase() === predicate;
+        return item.type && item.type.toLowerCase() === predicate;
       },
       tier: function(predicate, item) {
         const tierMap = {
@@ -522,6 +530,9 @@
         } else {
           return false;
         }
+      },
+      inloadout: function(predicate, item) {
+        return item.isInLoadout;
       },
       new: function(predicate, item) {
         return item.isNew;

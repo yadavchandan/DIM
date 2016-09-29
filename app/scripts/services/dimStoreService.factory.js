@@ -20,7 +20,8 @@
     'loadingTracker',
     'dimManifestService',
     '$translate',
-    'uuid2'
+    'uuid2',
+    'dimFeatureFlags'
   ];
 
   function StoreService(
@@ -39,7 +40,8 @@
     loadingTracker,
     dimManifestService,
     $translate,
-    uuid2
+    uuid2,
+    dimFeatureFlags
   ) {
     var _stores = [];
     var _idTracker = {};
@@ -273,7 +275,9 @@
 
       // Include vendors on the first load and if they're expired
       const currDate = new Date().toISOString();
-      const includeVendors = !_stores.length || _.any(_stores, (store) => store.minRefreshDate < currDate);
+      const includeVendors = dimFeatureFlags.vendorsEnabled &&
+              (!_stores.length ||
+               _.any(_stores, (store) => store.minRefreshDate < currDate));
 
       // Save a snapshot of all the items before we update
       const previousItems = buildItemSet(_stores);
@@ -420,8 +424,10 @@
 
               if (!includeVendors) {
                 var prevStore = _.findWhere(_stores, { id: raw.id });
-                store.vendors = prevStore.vendors;
-                store.minRefreshDate = prevStore.minRefreshDate;
+                if (prevStore) {
+                  store.vendors = prevStore.vendors;
+                  store.minRefreshDate = prevStore.minRefreshDate;
+                }
               }
 
               store.name = store.genderRace + ' ' + store.className;
@@ -631,7 +637,7 @@
         currentBucket = normalBucket;
       }
 
-      var itemType = normalBucket.type;
+      var itemType = normalBucket.type || 'Unknown';
 
       const categories = itemDef.itemCategoryHashes ? _.compact(itemDef.itemCategoryHashes.map((c) => {
         const category = defs.ItemCategory[c];
@@ -680,7 +686,8 @@
         trackable: currentBucket.inProgress && currentBucket.hash !== 375726501,
         tracked: item.state === 2,
         locked: item.locked,
-        classified: itemDef.redacted
+        classified: itemDef.redacted,
+        isInLoadout: false
       });
 
       createdItem.index = createItemIndex(createdItem);
@@ -841,6 +848,22 @@
         var xpRequired = xpToReachLevel(activatedAtGridLevel) - startProgressionBarAtProgress;
         var xp = Math.max(0, Math.min(totalXP - startProgressionBarAtProgress, xpRequired));
 
+        // Build a perk string for the DTR link. See https://github.com/DestinyItemManager/DIM/issues/934
+        var dtrHash = null;
+        if (node.isActivated || talentNodeGroup.isRandom) {
+          dtrHash = node.nodeHash.toString(16);
+          if (dtrHash.length > 1) {
+            dtrHash += ".";
+          }
+
+          if (talentNodeGroup.isRandom) {
+            dtrHash += node.stepIndex.toString(16);
+            if (node.isActivated) {
+              dtrHash += "o";
+            }
+          }
+        }
+
         // There's a lot more here, but we're taking just what we need
         return {
           name: nodeName,
@@ -865,7 +888,9 @@
           // Whether or not the material cost has been paid for the node
           unlocked: unlocked,
           // Some nodes don't show up in the grid, like purchased ascend nodes
-          hidden: node.hidden
+          hidden: node.hidden,
+
+          dtrHash: dtrHash
 
           // Whether (and in which order) this perk should be
           // "featured" on an abbreviated info panel, as in the
@@ -915,6 +940,7 @@
         hasAscendNode: Boolean(ascendNode),
         ascended: Boolean(ascendNode && ascendNode.activated),
         infusable: _.any(gridNodes, { hash: 1270552711 }),
+        dtrPerks: _.compact(_.pluck(gridNodes, 'dtrHash')).join(';'),
         complete: totalXPRequired <= totalXP && _.all(gridNodes, (n) => n.unlocked || (n.xpRequired === 0 && n.column === maxColumn))
       };
     }
@@ -974,6 +1000,10 @@
     function getScaledStat(base, light) {
       var max = 335;
 
+      if (light > 335) {
+        light = 335;
+      }
+
       return {
         min: Math.floor((base) * (fitValue(max) / fitValue(light))),
         max: Math.floor((base + 1) * (fitValue(max) / fitValue(light)))
@@ -990,6 +1020,11 @@
         if (!quality) {
           return '';
         }
+
+        if (light > 335) {
+          light = 335;
+        }
+
         return ((quality.min === quality.max || light === 335)
                 ? quality.min
                 : (quality.min + "%-" + quality.max)) + '%';
@@ -1309,7 +1344,6 @@
     }
 
     function processItems(owner, items, previousItems = new Set(), newItems = new Set(), itemInfoService) {
-      _idTracker = {};
       return $q.all([
         dimDefinitions,
         dimBucketService,
