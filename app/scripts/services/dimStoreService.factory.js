@@ -773,7 +773,7 @@
       try {
         createdItem.stats = buildStats(item, itemDef, defs.Stat, createdItem.talentGrid, itemType);
 
-        if (createdItem.stats && createdItem.stats.length == 0) {
+        if (createdItem.stats && createdItem.stats.length === 0) {
           createdItem.stats = buildStats(item, item, defs.Stat, createdItem.talentGrid, itemType);
         }
       } catch (e) {

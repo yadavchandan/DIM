@@ -4,7 +4,7 @@
   angular.module('dimApp')
     .factory('SyncService', SyncService);
 
-  SyncService.$inject = ['$q'];
+  SyncService.$inject = ['$q', 'dimFeatureFlags'];
 
   function toOpenLoadout(cached) {
     var ret = {};
@@ -101,7 +101,7 @@
     return ret;
   }
 
-  function SyncService($q) {
+  function SyncService($q, dimFeatureFlags) {
     var cached; // cached is the data in memory,
     var drive = { // drive api data
       client_id: '$GAPI_VERSION.apps.googleusercontent.com',
