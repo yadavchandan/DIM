@@ -4,9 +4,8 @@
   angular.module('dimApp')
     .factory('dimLoadoutService', LoadoutService);
 
-
-  LoadoutService.$inject = ['$q', '$rootScope', '$filter', 'uuid2', 'dimItemService', 'dimStoreService', 'toaster', 'loadingTracker', 'dimPlatformService', 'SyncService', 'dimActionQueue', 'dimBungieService'];
-  function LoadoutService($q, $rootScope, $filter, uuid2, dimItemService, dimStoreService, toaster, loadingTracker, dimPlatformService, SyncService, dimActionQueue, dimBungieService) {
+  LoadoutService.$inject = ['$q', '$rootScope', '$translate', 'uuid2', 'dimItemService', 'dimStoreService', 'toaster', 'loadingTracker', 'dimPlatformService', 'SyncService', 'dimActionQueue', 'dimBungieService'];
+  function LoadoutService($q, $rootScope, $translate, uuid2, dimItemService, dimStoreService, toaster, loadingTracker, dimPlatformService, SyncService, dimActionQueue, dimBungieService) {
     var _loadouts = [];
     var _previousLoadouts = {}; // by character ID
 
@@ -31,6 +30,18 @@
       });
     }
 
+    function buildLoadoutFilter(loadouts) {
+      loadouts.items.forEach(function(item) {
+        var itemFromStore = dimItemService.getItem({
+          id: item.id,
+          hash: item.hash
+        });
+        if (itemFromStore) {
+          itemFromStore.isInLoadout = true;
+        }
+      });
+    }
+
     function processLoadout(data, version) {
       if (data) {
         if (version === 'v4.0') {
@@ -39,6 +50,7 @@
             _loadouts.splice(0);
 
             _.each(ids, function(id) {
+              buildLoadoutFilter(data[id]);
               _loadouts.push(hydrate(data[id]));
             });
           });
@@ -47,15 +59,7 @@
           _loadouts.splice(0);
 
           _.each(ids, function(id) {
-            data[id].items.forEach(function(item) {
-              var itemFromStore = dimItemService.getItem({
-                id: item.id,
-                hash: item.hash
-              });
-              if (itemFromStore) {
-                itemFromStore.isInLoadout = true;
-              }
-            });
+            buildLoadoutFilter(data[id]);
             _loadouts.push(hydrate(data[id]));
           });
         } else {
@@ -237,7 +241,7 @@
             if (lastPreviousLoadout && loadout.id === lastPreviousLoadout.id) {
               _previousLoadouts[store.id].pop();
             } else {
-              const previousLoadout = store.loadoutFromCurrentlyEquipped($filter('translate')('before_loadout', { name: loadout.name }));
+              const previousLoadout = store.loadoutFromCurrentlyEquipped($translate.instant('before_loadout', { name: loadout.name }));
               _previousLoadouts[store.id].push(previousLoadout);
             }
           }
@@ -315,29 +319,7 @@
                 return getLoadoutItem(i, store);
               });
 
-              // Check for an equipped exotic without The Life Exotic
-              // perk, which occupies a slot that won't be already
-              // replaced with a loadout item, and remove
-              // it. Otherwise, the bulk equip will fail because
-              // Bungie doesn't unequip to make room for exotics.
-              const exoticsToEquip = _.filter(realItemsToEquip, (i) => i.isExotic);
-              const problemExotics = _.compact(exoticsToEquip.map((exotic) => {
-                return _.find(store.items, (i) => {
-                  return i.equipped &&
-                    i.bucket.sort === exotic.sort &&
-                    i.isExotic &&
-                    !i.hasLifeExotic() &&
-                    !_.find(realItemsToEquip, { type: i.type });
-                });
-              }));
-
-              let fixProblemExotics = $q.when();
-              if (problemExotics.length) {
-                const similarItems = problemExotics.map((i) => dimItemService.getSimilarItem(i, loadoutItemIds));
-                fixProblemExotics = dimItemService.equipItems(store, similarItems);
-              }
-
-              return fixProblemExotics.then(() => dimItemService.equipItems(store, realItemsToEquip));
+              return dimItemService.equipItems(store, realItemsToEquip);
             } else {
               return itemsToEquip;
             }
@@ -363,15 +345,16 @@
           })
           .then(function() {
             var value = 'success';
-            var message = 'Your loadout of ' + scope.total + ' items has been transferred to your ' + store.name + '.';
+
+            var message = $translate.instant('LoadoutApplied', { amount: scope.total, store: store.name });
 
             if (scope.failed > 0) {
               if (scope.failed === scope.total) {
                 value = 'error';
-                message = 'None of the items in your loadout could be transferred.';
+                message = $translate.instant('LoadoutAppliedError');
               } else {
                 value = 'warning';
-                message = 'Your loadout has been partially transferred, but ' + scope.failed + ' of ' + scope.total + ' items had errors.';
+                message = $translate.instant('LoadoutAppliedWarn', { failed: scope.failed, total: scope.total });
               }
             }
 

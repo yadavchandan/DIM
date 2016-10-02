@@ -305,8 +305,10 @@
         });
       }
 
-      saveDriveFile(cached.loadoutFileId, toOpenLoadout(cached));
-      saveDriveFile(cached.tagFileId, toOpenTag(cached));
+      if (dimFeatureFlags.driveSyncEnabled) {
+        saveDriveFile(cached.loadoutFileId, toOpenLoadout(cached));
+        saveDriveFile(cached.tagFileId, toOpenTag(cached));
+      }
     }
 
     // get DIM saved data
@@ -349,14 +351,18 @@
         chrome.storage.sync.get(null, function(data) {
           cached = data;
 
-          ready.promise.then(authorize).then(function() {
-            $q.all([getDriveFile(cached.loadoutFileId), getDriveFile(cached.tagFileId)]).then(function(resp) {
-              angular.extend(cached, toDIMLoadout(resp[0].result));
-              cached['dimItemInfo-' + cached.platformType] = resp[1].result;
+          if (dimFeatureFlags.driveSyncEnabled) {
+            ready.promise.then(authorize).then(function() {
+              $q.all([getDriveFile(cached.loadoutFileId), getDriveFile(cached.tagFileId)]).then(function(resp) {
+                angular.extend(cached, toDIMLoadout(resp[0].result));
+                cached['dimItemInfo-' + cached.platformType] = resp[1].result;
 
-              deferred.resolve(cached);
+                deferred.resolve(cached);
+              });
             });
-          });
+          } else {
+            deferred.resolve(cached);
+          }
         });
       } // otherwise, just use local storage
       else {

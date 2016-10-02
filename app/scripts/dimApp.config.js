@@ -19,7 +19,9 @@
       // vendors are off until we can make them lighter on the API
       vendorsEnabled: false,
       // Stats are off in release until we get better formulas
-      qualityEnabled: true
+      qualityEnabled: true,
+      // Control support for syncing to google drive.
+      driveSyncEnabled: ('$DIM_FLAVOR' !== 'release'),
     })
     .factory('loadingTracker', ['promiseTracker', function(promiseTracker) {
       return promiseTracker();

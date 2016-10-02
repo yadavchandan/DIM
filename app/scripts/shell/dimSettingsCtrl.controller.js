@@ -31,7 +31,7 @@
     vm.settings = settings;
 
     vm.showSync = function() {
-      return SyncService.drive();
+      return dimFeatureFlags.driveSyncEnabled && SyncService.drive();
     };
 
     vm.driveSync = function() {
