@@ -45,7 +45,7 @@
     function processLoadout(data, version) {
       if (data) {
         if (version === 'v4.0') {
-          dimBungieService.getMembership().then(function(membershipId) {
+          dimBungieService.getMembership(dimPlatformService.getActive()).then(function(membershipId) {
             var ids = data['loadouts-v4.0'][membershipId];
             _loadouts.splice(0);
 

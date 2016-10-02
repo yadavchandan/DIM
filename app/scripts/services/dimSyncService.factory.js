@@ -296,8 +296,6 @@
           toSync = _.omit(cached, ['dimItemInfo-1', 'dimItemInfo-2']);
         }
 
-        console.log('saving', cached);
-
         chrome.storage.sync.set(toSync, function() {
           if (chrome.runtime.lastError) {
             //            console.log('error with chrome sync.')
@@ -306,6 +304,8 @@
       }
 
       if (dimFeatureFlags.driveSyncEnabled) {
+        console.log('saving to cloud', cached);
+
         saveDriveFile(cached.loadoutFileId, toOpenLoadout(cached));
         saveDriveFile(cached.tagFileId, toOpenTag(cached));
       }

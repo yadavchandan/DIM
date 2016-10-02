@@ -21,7 +21,7 @@
       // Stats are off in release until we get better formulas
       qualityEnabled: true,
       // Control support for syncing to google drive.
-      driveSyncEnabled: ('$DIM_FLAVOR' !== 'release'),
+      driveSyncEnabled: false && ('$DIM_FLAVOR' !== 'release'),
     })
     .factory('loadingTracker', ['promiseTracker', function(promiseTracker) {
       return promiseTracker();
