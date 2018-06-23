@@ -92,6 +92,8 @@ export interface D2ManifestDefinitions {
   Faction: { [hash: number]: DestinyFactionDefinition };
   ItemTierType: { [hash: number]: DestinyItemTierTypeDefinition };
   ActivityMode: { [hash: number]: DestinyActivityModeDefinition };
+
+  allItems: { [hash: number]: DestinyInventoryItemDefinition };
 }
 
 /**
@@ -132,6 +134,8 @@ function getDefinitionsUncached(): IPromise<D2ManifestDefinitions> {
         const table = `Destiny${tableShort}Definition`;
         defs[tableShort] = D2ManifestService.getAllRecords(db, table);
       });
+
+      defs.allItems = D2ManifestService.getAllRecords(db, 'DestinyInventoryItemDefinition');
 
       return defs as D2ManifestDefinitions;
     });

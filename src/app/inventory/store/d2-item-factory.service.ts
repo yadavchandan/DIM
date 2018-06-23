@@ -39,6 +39,7 @@ import { D2Store } from '../store-types';
 import { InventoryBuckets } from '../inventory-buckets';
 import { D2RatingData } from '../../item-review/d2-dtr-api-types';
 import { D2StoresService } from '../d2-stores.service';
+import { classifyGhost } from './ghost';
 
 // Maps tierType to tierTypeName in English
 const tiers = [
@@ -513,6 +514,13 @@ export function makeItem(
       createdItem.tier === 'Rare' &&
       createdItem.bucket.hash === 3313201758) {
     createdItem.complete = true;
+  }
+
+  if (createdItem.type === 'Ghost') {
+    createdItem.ghost = classifyGhost(createdItem, itemDef, itemComponents, item, instanceDef);
+    if (createdItem.ghost.dmg) {
+      createdItem.dmg = [null, 'kinetic', 'arc', 'solar', 'void', 'raid'][createdItem.ghost.dmg || 0];
+    }
   }
 
   createdItem.index = createItemIndex(createdItem);

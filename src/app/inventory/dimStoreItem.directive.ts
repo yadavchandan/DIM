@@ -6,7 +6,7 @@ import template from './dimStoreItem.directive.html';
 import './dimStoreItem.scss';
 import { IComponentOptions, IController, IScope, IRootElementService, IRootScopeService } from 'angular';
 import { dimLoadoutService } from '../loadout/loadout.service';
-import { DimItem } from './item-types';
+import { DimItem, D2Item } from './item-types';
 import { CompareService } from '../compare/compare.service';
 import { moveItemTo } from './dimItemMoveService.factory';
 
@@ -111,6 +111,8 @@ export function StoreItemCtrl(
       processBounty(vm, vm.item);
     } else if (vm.item.maxStackSize > 1) {
       processStackable(vm, vm.item);
+    } else if (vm.item.ghost) {
+      processGhost(vm, vm.item);
     } else {
       processItem(vm, vm.item);
     }
@@ -222,6 +224,13 @@ export function StoreItemCtrl(
     vm.showBadge = true;
     vm.badgeClassNames = { "item-stat": true, "item-stackable": true };
     vm.badgeCount = item.amount;
+  }
+
+  function processGhost(vm, item: D2Item) {
+    console.log("process ghost", item.ghost)
+    vm.showBadge = true;
+    vm.badgeClassNames = { "item-stat": true };
+    vm.badgeCount = item.ghost.location;
   }
 
   function processItem(vm, item: DimItem) {
