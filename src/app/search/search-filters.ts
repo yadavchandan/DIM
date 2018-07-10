@@ -91,7 +91,8 @@ export function buildSearchConfig(
     transferable: ['transferable', 'movable'],
     infusable: ['infusable', 'infuse'],
     owner: ['invault', 'incurrentchar'],
-    location: ['inleftchar', 'inmiddlechar', 'inrightchar']
+    location: ['inleftchar', 'inmiddlechar', 'inrightchar'],
+    cosmetic: ['cosmetic']
   };
 
   if (destinyVersion === 1) {
@@ -114,8 +115,7 @@ export function buildSearchConfig(
       glimmer: ['glimmeritem', 'glimmerboost', 'glimmersupply'],
       year: ['year1', 'year2', 'year3'],
       vendor: ['fwc', 'do', 'nm', 'speaker', 'variks', 'shipwright', 'vanguard', 'osiris', 'xur', 'shaxx', 'cq', 'eris', 'ev', 'gunsmith'],
-      activity: ['vanilla', 'trials', 'ib', 'qw', 'cd', 'srl', 'vog', 'ce', 'ttk', 'kf', 'roi', 'wotm', 'poe', 'coe', 'af', 'dawning', 'aot'],
-      cosmetic: ['cosmetic']
+      activity: ['vanilla', 'trials', 'ib', 'qw', 'cd', 'srl', 'vog', 'ce', 'ttk', 'kf', 'roi', 'wotm', 'poe', 'coe', 'af', 'dawning', 'aot']
     });
   } else {
     Object.assign(filterTrans, {
@@ -838,7 +838,8 @@ export function searchFilters(
         return item.dimInfo.tag !== undefined;
       },
       hasLight(item: DimItem) {
-        const lightBuckets = ["BUCKET_CHEST",
+        const lightBuckets = [
+          "BUCKET_CHEST",
           "BUCKET_LEGS",
           "BUCKET_ARTIFACT",
           "BUCKET_HEAVY_WEAPON",
@@ -847,17 +848,17 @@ export function searchFilters(
           "BUCKET_SPECIAL_WEAPON",
           "BUCKET_HEAD",
           "BUCKET_ARMS",
-          "BUCKET_GHOST",
-          3448274439,
-          3551918588,
-          14239492,
-          20886954,
-          1585787867,
-          1498876634,
-          2465295065,
-          953998645
+          "BUCKET_GHOST"
         ];
-        return item.primStat && item.bucket && _.contains(lightBuckets, item.bucket.id);
+        const lightBucketsSort = [
+          "Armor",
+          "Weapons"
+        ];
+        if (item.isDestiny2()) {
+          return item.primStat && item.bucket && item.bucket.sort && lightBucketsSort.includes(item.bucket.sort);
+        } else {
+          return item.primStat && item.bucket && lightBuckets.includes(item.bucket.id);
+        }
       },
       weapon(item: DimItem) {
         return item.bucket && item.bucket.sort === 'Weapons';
@@ -875,7 +876,20 @@ export function searchFilters(
           "BUCKET_SHIP",
           "BUCKET_HORN"
         ];
-        return item.bucket && cosmeticBuckets.includes(item.bucket.id.toString());
+        const CosmeticBucketTypes = [
+          "Shaders",
+          "Modifications",
+          "Emotes",
+          "Emblems",
+          "Vehicle",
+          "Ships",
+          "ClanBanners"
+        ];
+        if (item.isDestiny2()) {
+          return item.bucket && item.bucket.type && CosmeticBucketTypes.includes(item.bucket.type.toString());
+        } else {
+          return item.bucket && cosmeticBuckets.includes(item.bucket.id.toString());
+        }
       },
       equipment(item: DimItem) {
         return item.equipment;
