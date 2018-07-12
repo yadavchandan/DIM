@@ -228,6 +228,22 @@ export function searchFilters(
   let _loadoutItemIds: Set<string> | undefined;
   let _loadoutItemIdsPromise: Promise<void> | undefined;
 
+  const CosmeticTypeNames = new Set([
+    "Shader",
+    "Shaders",
+    "Ornaments",
+    "Modifications",
+    "Emote",
+    "Emotes",
+    "Emblem",
+    "Emblems",
+    "Vehicle",
+    "Horn",
+    "Ship",
+    "Ships",
+    "ClanBanners"
+  ]);
+
   // This refactored method filters items by stats
   //   * statType = [aa|impact|range|stability|rof|reload|magazine|equipspeed|mobility|resilience|recovery]
   const filterByStats = (statType) => {
@@ -867,29 +883,7 @@ export function searchFilters(
         return item.bucket && item.bucket.sort === 'Armor';
       },
       cosmetic(item: DimItem) {
-        const cosmeticBuckets = [
-          "BUCKET_SHADER",
-          "BUCKET_MODS",
-          "BUCKET_EMOTES",
-          "BUCKET_EMBLEM",
-          "BUCKET_VEHICLE",
-          "BUCKET_SHIP",
-          "BUCKET_HORN"
-        ];
-        const CosmeticBucketTypes = [
-          "Shaders",
-          "Modifications",
-          "Emotes",
-          "Emblems",
-          "Vehicle",
-          "Ships",
-          "ClanBanners"
-        ];
-        if (item.isDestiny2()) {
-          return item.bucket && item.bucket.type && CosmeticBucketTypes.includes(item.bucket.type.toString());
-        } else {
-          return item.bucket && cosmeticBuckets.includes(item.bucket.id.toString());
-        }
+        return CosmeticTypeNames.has(item.typeName);
       },
       equipment(item: DimItem) {
         return item.equipment;
