@@ -228,7 +228,7 @@ export function searchFilters(
   let _loadoutItemIds: Set<string> | undefined;
   let _loadoutItemIdsPromise: Promise<void> | undefined;
 
-  const CosmeticTypeNames = new Set([
+  const CosmeticTypes = new Set([
     "Shader",
     "Shaders",
     "Ornaments",
@@ -883,7 +883,7 @@ export function searchFilters(
         return item.bucket && item.bucket.sort === 'Armor';
       },
       cosmetic(item: DimItem) {
-        return CosmeticTypeNames.has(item.typeName);
+        return CosmeticTypes.has(item.type);
       },
       equipment(item: DimItem) {
         return item.equipment;
